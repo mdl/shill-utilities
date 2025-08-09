@@ -1,7 +1,5 @@
-import fs from 'fs';
-import path from 'path';
 import { TelegramClient, Api, errors, Logger } from 'telegram';
-import { StringSession } from 'telegram/sessions';
+import { StoreSession } from 'telegram/sessions';
 import type { AppConfig } from '../config';
 import { prompt } from '../utils/prompt';
 
@@ -18,46 +16,25 @@ function sleep(ms: number) {
 export class TelegramService {
   private client!: TelegramClient;
   private config: AppConfig;
-  private sessionFile: string;
   private writablePeers: WritablePeer[] = [];
   private started = false;
 
   constructor(config: AppConfig) {
     this.config = config;
-    this.sessionFile = path.resolve(config.telegram.session_file);
   }
 
   public isStarted() {
     return this.started;
   }
 
-  private readSession(): string {
-    try {
-      if (fs.existsSync(this.sessionFile)) {
-        const data = fs.readFileSync(this.sessionFile, 'utf8').trim();
-        return data;
-      }
-    } catch (e) {
-      console.warn('[telegram] Failed to read session file:', e);
-    }
-    return '';
-  }
-
-  private saveSession(session: string) {
-    try {
-      fs.writeFileSync(this.sessionFile, session, 'utf8');
-    } catch (e) {
-      console.error('[telegram] Failed to save session file:', e);
-    }
-  }
 
   public async init(): Promise<void> {
-    const sessionStr = this.readSession();
-
     // Optional: Reduce GramJS logging noise
     Logger.setLevel('none');
 
-    this.client = new TelegramClient(new StringSession(sessionStr), this.config.telegram.api_id, this.config.telegram.api_hash, {
+    // Use StoreSession to avoid manual session persistence
+    const storeKey = this.config.telegram.session_file || 'telegram_session';
+    this.client = new TelegramClient(new StoreSession(storeKey), this.config.telegram.api_id, this.config.telegram.api_hash, {
       connectionRetries: 5,
       retryDelay: 2000,
       autoReconnect: true,
@@ -75,15 +52,6 @@ export class TelegramService {
         await this.loginFlow();
       }
       this.started = true;
-      // Persist session after successful auth
-      try {
-        const serialized = (this.client.session as any)?.save?.();
-        if (typeof serialized === 'string' && serialized) {
-          this.saveSession(serialized);
-        }
-      } catch (e) {
-        console.warn('[telegram] Unable to serialize session:', e);
-      }
       console.log('[telegram] Logged in successfully.');
     } catch (e) {
       console.error('[telegram] Login failed:', e);
@@ -235,14 +203,6 @@ export class TelegramService {
   public async disconnect(): Promise<void> {
     try {
       if (this.client) {
-        try {
-          const serialized = (this.client.session as any)?.save?.();
-          if (typeof serialized === 'string' && serialized) {
-            this.saveSession(serialized);
-          }
-        } catch (e) {
-          console.warn('[telegram] Unable to serialize session on disconnect:', e);
-        }
         await this.client.disconnect();
       }
     } catch (e) {
