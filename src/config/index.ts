@@ -20,21 +20,6 @@ export type AppConfig = {
   };
 };
 
-const DEFAULT_CONFIG: AppConfig = {
-  telegram: {
-    api_id: 0,
-    api_hash: '',
-    session_file: 'sessions/telegram.session',
-  },
-  runtime: {
-    refresh_groups_interval_minutes: 120,
-    post_interval_minutes: 5,
-    groups_only: true,
-  },
-  messages: {
-    list: ['Hello from the bot!', 'Automated message', 'Have a great day!'],
-  },
-};
 
 function readYamlFile(filePath: string): any {
   try {
@@ -45,29 +30,13 @@ function readYamlFile(filePath: string): any {
   }
 }
 
-function deepMerge<T extends object>(base: T, override: Partial<T>): T {
-  const result: any = Array.isArray(base) ? [...(base as any)] : { ...base };
-  for (const [key, value] of Object.entries(override as Record<string, any>)) {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      (result as any)[key] = deepMerge((result as any)[key] || {}, value);
-    } else if (value !== undefined) {
-      (result as any)[key] = value;
-    }
-  }
-  return result as T;
-}
 
 export function loadConfig(): AppConfig {
-  const examplePath = path.resolve('config/config.example.yml');
   const configPath = path.resolve('config/config.yml');
-
-  const base = DEFAULT_CONFIG;
-  const example = readYamlFile(examplePath);
-  const user = readYamlFile(configPath);
-
-  // Merge order: defaults <- example <- user
-  let cfg = deepMerge(base, example);
-  cfg = deepMerge(cfg, user);
+  if (!fs.existsSync(configPath)) {
+    throw new Error('Missing config/config.yml. Provide a single config.yml with all required fields.');
+  }
+  const cfg: any = readYamlFile(configPath);
 
   // ENV overrides
   const envApiId = process.env.TELEGRAM_API_ID ? Number(process.env.TELEGRAM_API_ID) : undefined;
@@ -75,15 +44,34 @@ export function loadConfig(): AppConfig {
   const envPhone = process.env.TELEGRAM_PHONE;
   const envPassword = process.env.TELEGRAM_PASSWORD;
 
+  cfg.telegram = cfg.telegram || {};
   if (envApiId) cfg.telegram.api_id = envApiId;
   if (envApiHash) cfg.telegram.api_hash = envApiHash;
   if (envPhone) cfg.telegram.phone = envPhone;
   if (envPassword) cfg.telegram.password = envPassword;
 
-  // Normalize types and paths
-  cfg.runtime.refresh_groups_interval_minutes = Number(cfg.runtime.refresh_groups_interval_minutes) || DEFAULT_CONFIG.runtime.refresh_groups_interval_minutes;
-  cfg.runtime.post_interval_minutes = Number(cfg.runtime.post_interval_minutes) || DEFAULT_CONFIG.runtime.post_interval_minutes;
-  cfg.telegram.session_file = path.resolve(cfg.telegram.session_file || DEFAULT_CONFIG.telegram.session_file);
+  // Basic validation and normalization
+  if (!cfg.telegram || !cfg.telegram.api_id || !cfg.telegram.api_hash) {
+    throw new Error('Telegram API credentials missing. Set telegram.api_id and telegram.api_hash in config/config.yml or environment variables TELEGRAM_API_ID and TELEGRAM_API_HASH.');
+  }
+
+  if (!cfg.runtime) throw new Error('Missing runtime section in config/config.yml.');
+  cfg.runtime.refresh_groups_interval_minutes = Number(cfg.runtime.refresh_groups_interval_minutes);
+  cfg.runtime.post_interval_minutes = Number(cfg.runtime.post_interval_minutes);
+  if (!Number.isFinite(cfg.runtime.refresh_groups_interval_minutes) || cfg.runtime.refresh_groups_interval_minutes <= 0) {
+    throw new Error('runtime.refresh_groups_interval_minutes must be a positive number in config/config.yml.');
+  }
+  if (!Number.isFinite(cfg.runtime.post_interval_minutes) || cfg.runtime.post_interval_minutes <= 0) {
+    throw new Error('runtime.post_interval_minutes must be a positive number in config/config.yml.');
+  }
+  if (typeof cfg.runtime.groups_only !== 'boolean') {
+    throw new Error('runtime.groups_only must be a boolean in config/config.yml.');
+  }
+
+  if (!cfg.telegram.session_file || typeof cfg.telegram.session_file !== 'string') {
+    throw new Error('telegram.session_file must be provided in config/config.yml.');
+  }
+  cfg.telegram.session_file = path.resolve(cfg.telegram.session_file);
 
   // Ensure session directory exists
   try {
@@ -93,15 +81,9 @@ export function loadConfig(): AppConfig {
     console.error('[config] Failed to ensure session directory exists:', e);
   }
 
-  // Basic validation
-  if (!cfg.telegram.api_id || !cfg.telegram.api_hash) {
-    throw new Error('Telegram API credentials missing. Please set telegram.api_id and telegram.api_hash in config/config.yml or environment variables TELEGRAM_API_ID and TELEGRAM_API_HASH.');
+  if (!cfg.messages || !Array.isArray(cfg.messages.list)) {
+    throw new Error('messages.list must be provided as an array in config/config.yml.');
   }
 
-  if (!cfg.messages.list || cfg.messages.list.length === 0) {
-    console.warn('[config] messages.list is empty. Using default example messages.');
-    cfg.messages.list = DEFAULT_CONFIG.messages.list;
-  }
-
-  return cfg;
+  return cfg as AppConfig;
 }
