@@ -1,24 +1,30 @@
 # Copy this file to config/config.yml and adjust values
 telegram:
-  api_id: 123456
-  api_hash: "your_api_hash_here"
+  api_id: 13934596
+  api_hash: "7de89025b619f8f800fbce5bdacf4ec9"
   # Optional: phone number and 2FA password for first login (E.164 format)
-  phone: 
-  password: 
+  phone: '+380999197273'
+  password:
   # File path to store persistent session string
   session_file: "sessions/telegram.session"
 
 runtime:
   # Interval to refresh the list of writable groups (minutes)
-  refresh_groups_interval_minutes: 120
+  refresh_groups_interval_minutes: 5
   # Interval between posts (minutes)
-  post_interval_minutes: 5
+  post_interval_minutes: 3
   # Only post to groups (not DMs). Keep true to satisfy requirement
   groups_only: true
 
 messages:
   # List of possible messages to choose from randomly
   list:
-    - "Hello from the bot!"
-    - "Automated message"
-    - "Have a great day!"
+    - "/ABNORMAL_GROWTH_SOON"
+    - "/BUY_MORE"
+    - "/HOLDING_TILL_LAMBO"
+    - "/HODL_TO_RICH"
+    - "/LETS_GO"
+    - "/MOON"
+    - "/100M_SOON"
+    - "/SMART_CHADS_IN"
+

@@ -2,7 +2,6 @@ node_modules/
 dist/
 .env
 sessions/
-config/config.yml
 *.log
 .DS_Store
 .idea

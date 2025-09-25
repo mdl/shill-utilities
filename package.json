@@ -5,7 +5,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/scripts/poster.js",
-    "dev": "ts-node src/scripts/poster.ts"
+    "dev": "ts-node src/scripts/poster.ts",
+    "start:multi": "node dist/scripts/multi_commenter.js --config config/multi_commenter.yml",
+    "dev:multi": "ts-node src/scripts/multi_commenter.ts --config config/multi_commenter.yml"
   },
   "repository": {
     "type": "git",

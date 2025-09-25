@@ -1,0 +1,24 @@
+# Config for multi_commenter script
+telegram:
+  api_id: 13934596
+  api_hash: "7de89025b619f8f800fbce5bdacf4ec9"
+  # Directory to store per-user session files
+  session_dir: "sessions_multi"
+
+# Up to 10 users (phone numbers). Each entry can be a string (phone) or object with phone/password
+users:
+  - "+380999434737"
+  - "+380635769219"
+  - "+380635159365"
+
+runtime:
+  # Consider only groups/megagroups for common peers (recommended true)
+  groups_only: true
+  # Channel (username or t.me link) with comment templates to pull from
+  comments_source: "sourcefpv"
+  # How often to refresh comment templates (minutes)
+  comments_refresh_minutes: 30
+  # Probability in [0,1] to ignore a new post (0.5 = 50% chance to skip)
+  ignore_probability: 0.5
+  # How many latest messages to pull from comments_source
+  max_comment_history: 200
